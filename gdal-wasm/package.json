@@ -1,0 +1,16 @@
+{
+  "name": "gdal-wasm-module",
+  "private": true,
+  "version": "0.0.1",
+  "description": "GDAL compiled to WebAssembly (crossbind) to read and check vector data in the browser",
+  "type": "module",
+  "scripts": {
+    "build": "crossbind build -p wasm -a wasm32 -r st -e browser -b release",
+    "postbuild": "node scripts/copy-artifacts.mjs"
+  },
+  "devDependencies": {
+    "@crossbind/port-gdal-wasm": "2.0.0-beta.67",
+    "crossbind": "2.0.0-beta.68",
+    "node": "24.22.2"
+  }
+}

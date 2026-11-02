@@ -1,0 +1,7 @@
+node_modules/
+gdal-wasm/.crossbind/
+gdal-wasm/build.log
+angular/dist/
+angular/.angular/
+testdata/work/
+testdata/out/

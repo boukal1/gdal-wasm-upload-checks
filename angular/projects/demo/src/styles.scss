@@ -1,0 +1,131 @@
+body {
+  margin: 0;
+  font-family: Arial, sans-serif;
+  font-size: 14px;
+  color: #222;
+}
+
+main {
+  padding: 1rem 2rem;
+}
+
+.muted {
+  color: #666;
+}
+
+.error {
+  padding: 0.5rem;
+  color: #a00;
+  background: #fdecec;
+  border: 1px solid #f3b4b4;
+}
+
+.notice {
+  padding: 0.5rem;
+  background: #e8f0fe;
+  border: 1px solid #b6cbf5;
+}
+
+.upload {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin: 1rem 0;
+}
+
+.scroll {
+  overflow-x: auto;
+}
+
+table {
+  border-collapse: collapse;
+  margin-bottom: 1.5rem;
+}
+
+th,
+td {
+  padding: 0.25rem 0.5rem;
+  border: 1px solid #ddd;
+  text-align: left;
+  vertical-align: top;
+  white-space: nowrap;
+}
+
+th {
+  background: #f3f3f3;
+}
+
+tbody tr {
+  cursor: pointer;
+}
+
+tr.selected {
+  background: #e8f0fe;
+}
+
+.measurements tbody tr {
+  cursor: default;
+}
+
+.error-cell {
+  color: #a00;
+  white-space: normal;
+}
+
+.check-form {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+
+  .coordinate {
+    width: 7rem;
+  }
+
+  .z {
+    width: 4.5rem;
+  }
+}
+
+.checks {
+  tbody tr {
+    cursor: default;
+  }
+
+  .status {
+    font-weight: bold;
+    border: 1px solid #ddd;
+  }
+
+  .ok {
+    color: #1a7f37;
+    background: #e6f4ea;
+  }
+
+  .error {
+    padding: 0.25rem 0.5rem;
+    color: #fff;
+    background: #c62828;
+  }
+
+  .warning {
+    color: #7a4100;
+    background: #ffe0b2;
+  }
+
+  .notChecked {
+    color: #888;
+    font-weight: normal;
+  }
+
+  .detail {
+    white-space: normal;
+    max-width: 40rem;
+  }
+}
+
+.field {
+  display: inline-block;
+  margin-right: 0.75rem;
+}

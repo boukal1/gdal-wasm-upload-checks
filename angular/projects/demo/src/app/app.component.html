@@ -1,0 +1,206 @@
+<main>
+  <h1>PoC GDAL im Browser</h1>
+  <p class="muted">
+    @if (gdalVersion(); as version) {
+      GDAL {{ version }} geladen in {{ startupMs() }} ms
+    } @else {
+      GDAL wird geladen...
+    }
+    - Dateizugriff: {{ copyFiles ? 'Kopie im Speicher des Workers' : 'direkt, stückweise (Blob.slice)' }}
+  </p>
+
+  <p class="notice">
+    Die Datei wird nur in diesem Browser gelesen und geprüft (GDAL als WebAssembly). Sie wird nirgends hochgeladen.
+  </p>
+
+  <label class="upload">
+    Fachdaten (ZIP mit .gdb, .gpkg, .shp oder .geojson; oder .gpkg / .geojson)
+    <input type="file" accept=".zip,.gpkg,.geojson,.json" [disabled]="busy() || !gdalVersion()" (change)="onFileSelected($event)" />
+  </label>
+
+  @if (busy()) {
+    <p class="muted">Lesen...</p>
+  }
+  @if (error(); as message) {
+    <p class="error">{{ message }}</p>
+  }
+
+  @if (dataset(); as data) {
+    <h2>{{ data.fileName }}</h2>
+    <p class="muted">
+      Treiber {{ data.driver }}
+      @if (timings(); as time) {
+        - geöffnet in {{ time.open }} ms, {{ rowLimit }} Objekte gelesen in {{ time.read }} ms
+      }
+    </p>
+
+    <table>
+      <thead>
+        <tr><th>Featureklasse</th><th>Geometrie</th><th>Koordinatensystem</th><th>Objekte</th><th>Felder</th></tr>
+      </thead>
+      <tbody>
+        @for (layer of data.layers; track layer.name) {
+          <tr [class.selected]="layer === selectedLayer()" (click)="onLayerSelected(layer)">
+            <td>{{ layer.name }}</td>
+            <td>{{ layer.geometryType ?? '-' }}</td>
+            <td>{{ layer.crs ?? '-' }}</td>
+            <td>{{ layer.featureCount }}</td>
+            <td>
+              @for (field of layer.fields; track field.name) {
+                <span class="field">{{ field.name }} ({{ field.type }}{{ field.subType ? '/' + field.subType : '' }})</span>
+              }
+            </td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  }
+
+  @if (selectedLayer(); as layer) {
+    <h2>{{ layer.name }}: Prüfungen beim Hochladen</h2>
+    <div class="check-form">
+      <label>
+        Fachnetz-Typ
+        <select (change)="onFachnetzTypeChange($event)">
+          @for (type of fachnetzTypes; track type) {
+            <option [value]="type" [selected]="type === fachnetzType()">{{ type }}</option>
+          }
+        </select>
+      </label>
+      <label>
+        UUID-Feld
+        <select (change)="onUuidFieldChange($event)">
+          <option value="" [selected]="!uuidField()">(keins)</option>
+          @for (field of layer.fields; track field.name) {
+            <option [value]="field.name" [selected]="field.name === uuidField()">{{ field.name }}</option>
+          }
+        </select>
+      </label>
+      <label>
+        <input type="checkbox" [checked]="!!filterBbox()" (change)="onFilterToggle($event)" />
+        Filter-BBOX (LV95)
+      </label>
+      @if (filterBbox(); as box) {
+        @for (value of box; track $index) {
+          <input class="coordinate" type="number" [value]="value" (change)="onFilterChange($index, $event)" />
+        }
+      }
+      <label>
+        Z von
+        <input class="z" type="number" [value]="zRange()[0]" (change)="onZRangeChange(0, $event)" />
+        bis
+        <input class="z" type="number" [value]="zRange()[1]" (change)="onZRangeChange(1, $event)" />
+        m
+      </label>
+      <label>
+        <input type="checkbox" [checked]="checkSelfIntersections()" (change)="onSelfIntersectionsToggle($event)" />
+        Selbstüberschneidungen prüfen (GEOS)
+      </label>
+      <button type="button" [disabled]="busy()" (click)="onRunChecks()">Prüfungen ausführen</button>
+    </div>
+
+    @if (checkResults().length > 0) {
+      <table class="checks">
+        <thead>
+          <tr><th>Nr.</th><th>Prüfung</th><th>Ergebnis</th><th>Anzahl</th><th>Beispiel FID</th><th>Art</th><th>Details</th></tr>
+        </thead>
+        <tbody>
+          @for (check of checkResults(); track check.id) {
+            <tr>
+              <td>{{ check.id }}</td>
+              <td>{{ check.label }}</td>
+              <td class="status" [class]="check.status">{{ statusLabel(check.status) }}</td>
+              <td>{{ check.count ?? '' }}</td>
+              <td>{{ check.exampleFid ?? '' }}</td>
+              <td>{{ check.fullRead ? 'alle Objekte' : 'Schema' }}</td>
+              <td class="detail">{{ check.detail }}</td>
+            </tr>
+          }
+          @if (checking()) {
+            <tr><td colspan="7" class="muted">Alle Objekte werden gelesen...</td></tr>
+          }
+        </tbody>
+      </table>
+      @if (checkMs() !== null) {
+        <p class="muted">Feldnamen sofort aus dem Schema; alle Objekte in einem Durchgang gelesen und geprüft in {{ checkMs() }} ms.</p>
+      }
+    }
+
+    <h2>{{ layer.name }}: erste {{ rowLimit }} Objekte</h2>
+    <div class="scroll">
+      <table>
+        <thead>
+          <tr>
+            <th>FID</th>
+            <th>Geometrie</th>
+            <th>Teile</th>
+            @for (field of layer.fields; track field.name) {
+              <th>{{ field.name }}</th>
+            }
+          </tr>
+        </thead>
+        <tbody>
+          @for (feature of features(); track feature.fid) {
+            <tr>
+              <td>{{ feature.fid }}</td>
+              <td>{{ feature.geometryType ?? 'NULL' }}</td>
+              <td>{{ feature.partCount }}</td>
+              @for (field of layer.fields; track field.name) {
+                <td>{{ format(feature.properties[field.name]) }}</td>
+              }
+            </tr>
+          } @empty {
+            <tr><td [attr.colspan]="layer.fields.length + 3">Keine Objekte</td></tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  }
+
+  @if (showMeasurements) {
+    <h2>Messreihe</h2>
+    <label class="upload">
+      Mehrere Dateien: pro Datei Schema lesen, dann alle Prüfungen für jede Featureklasse (Fachnetz-Typ aus dem Geometrietyp, UUID-Feld "uuid")
+      <input type="file" multiple accept=".zip,.gpkg,.geojson,.json" [disabled]="busy() || !gdalVersion()" (change)="onMeasureFiles($event)" />
+    </label>
+    <label>
+      <input type="checkbox" [checked]="checkSelfIntersections()" (change)="onSelfIntersectionsToggle($event)" />
+      Selbstüberschneidungen prüfen (GEOS)
+    </label>
+    @if (measurements().length > 0) {
+      <div class="scroll">
+        <table class="measurements">
+          <thead>
+            <tr>
+              <th>Datei</th><th>MB</th><th>Treiber</th><th>Featureklasse</th><th>Objekte</th><th>Schema ms</th>
+              <th>Z aus Header</th><th>Alle Prüfungen ms</th><th>Stützpunkte</th><th>Kreisbögen</th><th>Z min</th><th>Z max</th>
+              <th>Z ausserhalb</th><th>UUID doppelt</th><th>Prüfungen mit Fehler</th><th>Lesefehler</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (row of measurements(); track $index) {
+              <tr>
+                <td>{{ row.file }}</td>
+                <td>{{ row.sizeMb }}</td>
+                <td>{{ row.driver }}</td>
+                <td>{{ row.layer }}</td>
+                <td>{{ row.check?.features ?? row.featureCount }}</td>
+                <td>{{ row.schemaMs }}</td>
+                <td>{{ row.headerZ ? row.headerZ.zMin + ' bis ' + row.headerZ.zMax + ' (' + row.headerZMs + ' ms)' : '-' }}</td>
+                <td>{{ row.checkMs ?? '-' }}</td>
+                <td>{{ row.check?.vertices ?? '-' }}</td>
+                <td>{{ row.check?.curves?.count ?? '-' }}</td>
+                <td>{{ row.check?.zMin ?? '-' }}</td>
+                <td>{{ row.check?.zMax ?? '-' }}</td>
+                <td>{{ row.check?.zOutside?.count ?? '-' }}</td>
+                <td>{{ row.check?.uuidDuplicates?.count ?? '-' }}</td>
+                <td>{{ row.errorChecks ?? '-' }}</td>
+                <td class="error-cell">{{ row.error ?? '' }}</td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    }
+  }
+</main>
