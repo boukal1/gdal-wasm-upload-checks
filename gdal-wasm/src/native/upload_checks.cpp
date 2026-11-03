@@ -428,7 +428,7 @@ std::string GdalReader::check(const std::string& path, const std::string& layer,
     }
     const CPLJSONObject options = document.GetRoot();
     const double zLow = options.GetDouble("zLow", 180);
-    const double zHigh = options.GetDouble("zHigh", 3500);
+    const double zHigh = options.GetDouble("zHigh", 3900);
     const std::string uuidField = options.GetString("uuidField", "");
     const bool checkSelfIntersections = options.GetBool("selfIntersections", true);
 

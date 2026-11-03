@@ -114,7 +114,7 @@ public:
      *
      * @param path GDAL path of the dataset
      * @param layer name of the layer to read
-     * @param optionsJson {"zLow":180,"zHigh":3500,"swissBbox":[xmin,ymin,xmax,ymax],"filterBbox":[...],"uuidField":"uuid"};
+     * @param optionsJson {"zLow":180,"zHigh":3900,"swissBbox":[xmin,ymin,xmax,ymax],"filterBbox":[...],"uuidField":"uuid"};
      *        boxes in LV95 (EPSG:2056), each key optional
      * @return JSON object with the totals and one {"count","example"} counter per check
      * @throws std::runtime_error with GDAL's message if the options are invalid or the layer cannot be opened

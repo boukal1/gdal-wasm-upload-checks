@@ -14,8 +14,8 @@ export const EXPECTED_GEOMETRY: Record<FachnetzType, 'line' | 'point' | 'polygon
 /** Extent of Switzerland in LV95 (EPSG:2056). */
 export const SWISS_BBOX_LV95: [number, number, number, number] = [2485080, 1074270, 2837120, 1299950];
 
-/** Plausible Z range in metres. */
-export const DEFAULT_Z_RANGE: [number, number] = [180, 3500];
+/** Plausible Z range in metres; the upper bound covers the highest transport infrastructure in Switzerland. */
+export const DEFAULT_Z_RANGE: [number, number] = [180, 3900];
 
 /**
  * What the user chose in the GUI, needed by some checks.

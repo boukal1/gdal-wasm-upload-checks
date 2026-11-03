@@ -77,7 +77,7 @@ Test data (Docker): `pwsh testdata/scripts/build-check-cases.ps1`, `build-testda
 ```typescript
 const dataset = await gdal.open(file);                       // GdalDataset: driver, layers, fields, CRS, extent
 const layer = dataset.layers[0];
-const context: GdalCheckContext = { fachnetzType: 'Kanten', zRange: [180, 3500], filterBbox: null, uuidField: 'uuid' };
+const context: GdalCheckContext = { fachnetzType: 'Kanten', zRange: [180, 3900], filterBbox: null, uuidField: 'uuid' };
 const fieldResults = checkFieldNames(layer);                  // instant, from the schema
 const counters = await gdal.check(dataset, layer.name, context); // one pass over every feature
 const results = [...fieldResults, ...evaluateGeometryChecks(layer, counters, context)];
@@ -109,7 +109,7 @@ Network types: `Kanten` (lines), `Knoten` and `Punkte` (points), `Flaechen` (pol
 | 16 | Two equal consecutive M values | error |
 | GV | Degenerate (zero length or area, flat arc, ring with fewer than 4 points), NaN or infinite coordinate, unreadable | error |
 | 1P | Line with a single vertex | error |
-| Z | Z outside a plausible range (180-3500 m by default) | error |
+| Z | Z outside a plausible range (180-3900 m by default) | error |
 | KB | Arcs | error |
 | SL | Loop (start point = end point) | warning |
 | SÜ | Self-intersection in 2D (GEOS `isSimple`, can be switched off) | warning |
