@@ -342,7 +342,8 @@ void inspect(const OGRGeometry& geometry, GIntBig fid, double zLow, double zHigh
         geometry.toGeometryCollection()->getNumGeometries() > 1) {
         counters.multiparts.add(fid);
     }
-    if (geometry.hasCurveGeometry()) {
+    // TRUE: only real arcs count; a MultiCurve or CompoundCurve made of straight lines only is not reported
+    if (geometry.hasCurveGeometry(TRUE)) {
         counters.curves.add(fid);
     }
 
