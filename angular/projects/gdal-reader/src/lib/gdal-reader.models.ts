@@ -55,7 +55,7 @@ export interface GdalFeature {
   fid: number;
   /** Attribute values keyed by field name; dates come as ogrinfo text, e.g. "2021/06/17" or "2025/04/11 08:30:00+00". */
   properties: Record<string, unknown>;
-  /** GeoJSON geometry type, null for a NULL geometry. */
+  /** Geometry type (GeoJSON name, or e.g. MultiCurve, CompoundCurve for curve types), null for a NULL geometry. */
   geometryType: string | null;
   /** Number of parts of a multi geometry, 1 for a simple one, 0 for a NULL geometry. */
   partCount: number;

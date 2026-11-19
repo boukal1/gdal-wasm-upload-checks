@@ -64,5 +64,7 @@ export interface OgrInfoLayer {
     fid?: number;
     properties?: Record<string, unknown>;
     geometry?: { type?: string; coordinates?: unknown[]; geometries?: unknown[] } | null;
+    /** WKT of a geometry GeoJSON cannot express (MultiCurve, CompoundCurve, ...): ogrinfo then sets geometry to null. */
+    wkt_geometry?: string;
   }[];
 }

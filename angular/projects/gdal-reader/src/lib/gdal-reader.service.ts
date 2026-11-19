@@ -8,6 +8,18 @@ import { GDAL_LOADER_FILE, InitNative, NativeGdalModule, NativeGdalReader, OgrIn
 /** GDAL file system reading the browser files in place (gdal-wasm/src/native/blob_file_system.cpp). */
 const BLOB_PREFIX = '/vsiblob/';
 
+/** Display names of the WKT types GeoJSON cannot express, keyed by WKT keyword. */
+const WKT_TYPE_NAMES: Record<string, string> = {
+  CIRCULARSTRING: 'CircularString',
+  COMPOUNDCURVE: 'CompoundCurve',
+  CURVEPOLYGON: 'CurvePolygon',
+  MULTICURVE: 'MultiCurve',
+  MULTISURFACE: 'MultiSurface',
+  POLYHEDRALSURFACE: 'PolyhedralSurface',
+  TIN: 'TIN',
+  TRIANGLE: 'Triangle',
+};
+
 /** GDAL runtime once loaded: the crossbind module and the native reader instance. */
 interface GdalRuntime {
   module: NativeGdalModule;
@@ -91,12 +103,16 @@ export class GdalReaderService {
     const { reader } = await this.load();
     const report = this.parse<OgrInfoReport>(await this.call(() => reader.features(dataset.path, layerName, limit)));
     const layer = report.layers?.find((candidate) => candidate.name === layerName);
-    return (layer?.features ?? []).map((feature) => ({
-      fid: feature.fid ?? -1,
-      properties: feature.properties ?? {},
-      geometryType: feature.geometry?.type ?? null,
-      partCount: this.countParts(feature.geometry),
-    }));
+    return (layer?.features ?? []).map((feature) => {
+      // ogrinfo reports curve types (MultiCurve, CompoundCurve, ...) as WKT only, with a null GeoJSON geometry
+      const curve = feature.geometry ? null : this.describeWkt(feature.wkt_geometry);
+      return {
+        fid: feature.fid ?? -1,
+        properties: feature.properties ?? {},
+        geometryType: feature.geometry?.type ?? curve?.type ?? null,
+        partCount: curve?.partCount ?? this.countParts(feature.geometry),
+      };
+    });
   }
 
   /**
@@ -248,6 +264,40 @@ export class GdalReaderService {
       return geometry.geometries?.length ?? 0;
     }
     return geometry.type.startsWith('Multi') ? (geometry.coordinates?.length ?? 0) : 1;
+  }
+
+  /**
+   * Describes a geometry that ogrinfo reports as WKT only, because GeoJSON cannot express its type.
+   *
+   * @param wkt WKT of the geometry, e.g. "MULTICURVE Z ((0 0 1,1 1 1))"
+   * @returns the type name and the number of parts (members of a Multi type, 1 otherwise, 0 if empty); null without WKT
+   */
+  private describeWkt(wkt: string | undefined): { type: string; partCount: number } | null {
+    const keyword = wkt?.match(/^\s*([A-Za-z]+)/)?.[1].toUpperCase();
+    if (!wkt || !keyword) {
+      return null;
+    }
+    const type = WKT_TYPE_NAMES[keyword] ?? keyword;
+    const start = wkt.indexOf('(');
+    if (start < 0) {
+      return { type, partCount: 0 };
+    }
+    if (!keyword.startsWith('MULTI')) {
+      return { type, partCount: 1 };
+    }
+    // Members of a Multi type are separated by the commas directly inside the outer parentheses
+    let depth = 0;
+    let partCount = 1;
+    for (const character of wkt.slice(start)) {
+      if (character === '(') {
+        depth++;
+      } else if (character === ')') {
+        depth--;
+      } else if (character === ',' && depth === 1) {
+        partCount++;
+      }
+    }
+    return { type, partCount };
   }
 
   /**
